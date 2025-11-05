@@ -1,72 +1,45 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ivoplayx Chat (debug)</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat de Twitch - Ivoplayx</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/comfy.js@1.1.1/dist/comfy.min.js"></script>
 </head>
 <body>
-  <div id="chat"></div>
-  <div id="log"></div> <!-- mostrará errores o estado -->
+  <div id="chat-box"></div>
 
   <script>
-    const log = (msg) => {
-      const logBox = document.getElementById('log');
-      const p = document.createElement('p');
-      p.textContent = msg;
-      logBox.appendChild(p);
-      console.log(msg);
-    };
+    // Configura tu canal de Twitch
+    const CHANNEL = "ivoplayx"; // <-- Asegúrate de que esté igual que tu canal en Twitch
 
-    log('🟡 Conectando con Twitch...');
+    // Conectamos al chat
+    ComfyJS.Init(CHANNEL);
 
-    const client = new tmi.Client({
-      options: { debug: true },
-      connection: { reconnect: true },
-      channels: ['ivoplayx'] // asegúrate de que es tu canal
-    });
+    // Contenedor principal
+    const chatBox = document.getElementById("chat-box");
 
-    client.connect()
-      .then(() => log('✅ Conexión establecida con Twitch'))
-      .catch(err => log('❌ Error de conexión: ' + err));
+    // Mostrar mensajes
+    ComfyJS.onChat = (user, message, flags, self, extra) => {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message");
 
-    client.on('message', (channel, tags, message, self) => {
-      if (self) return;
-      log(`💬 Mensaje recibido de ${tags['display-name']}: ${message}`);
-      addMessage(tags['display-name'], message);
-    });
+      // Alternar colores entre usuarios
+      const colorClass = user.toLowerCase().charCodeAt(0) % 2 === 0 ? "user1" : "user2";
+      msgDiv.classList.add(colorClass);
 
-    client.on('connected', () => log('🟢 Conectado al servidor IRC de Twitch'));
-    client.on('disconnected', () => log('🔴 Desconectado del servidor'));
+      msgDiv.innerHTML = `<span class="username">${user}:</span> ${message}`;
+      chatBox.appendChild(msgDiv);
 
-    function addMessage(username, message) {
-      const chat = document.getElementById('chat');
-      const msgContainer = document.createElement('div');
-      msgContainer.classList.add('message');
-
-      const index = chat.children.length % 2;
-      msgContainer.classList.add(index === 0 ? 'dark' : 'darker');
-
-      const user = document.createElement('span');
-      user.classList.add('username');
-      user.textContent = username + ': ';
-
-      const text = document.createElement('span');
-      text.classList.add('text');
-      text.textContent = message;
-
-      msgContainer.appendChild(user);
-      msgContainer.appendChild(text);
-      chat.appendChild(msgContainer);
-
-      if (chat.children.length > 20) {
-        chat.removeChild(chat.firstChild);
+      // Eliminar mensajes antiguos para mantener limpio
+      if (chatBox.children.length > 15) {
+        chatBox.removeChild(chatBox.firstChild);
       }
 
-      chat.scrollTop = chat.scrollHeight;
-    }
+      // Scroll automático hacia abajo
+      chatBox.scrollTop = chatBox.scrollHeight;
+    };
   </script>
 </body>
 </html>
