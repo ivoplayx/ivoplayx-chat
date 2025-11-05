@@ -1,0 +1,46 @@
+body {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  font-family: 'Montserrat', sans-serif;
+  overflow: hidden;
+}
+
+#chat-box {
+  width: 420px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow-y: hidden;
+  padding: 5px;
+}
+
+.message {
+  padding: 8px 12px;
+  margin: 0;
+  border-radius: 6px;
+  font-size: 16px;
+  color: white;
+  word-wrap: break-word;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.user1 {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.user2 {
+  background-color: rgba(50, 50, 50, 0.6);
+}
+
+.username {
+  font-weight: bold;
+  color: #ffcc00;
+  margin-right: 6px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
