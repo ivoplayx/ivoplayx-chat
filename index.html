@@ -1,45 +1,155 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat de Twitch - Ivoplayx</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ivoplayx Chat</title>
+
+  <!-- Estilos -->
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/comfy.js@1.1.1/dist/comfy.min.js"></script>
+
+  <!-- tmi.js (cliente Twitch IRC) -->
+  <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
 </head>
 <body>
-  <div id="chat-box"></div>
+  <div id="overlay-root">
+    <div id="chat" role="log" aria-live="polite"></div>
+    <div id="status" aria-hidden="false"></div>
+  </div>
 
   <script>
-    // Configura tu canal de Twitch
-    const CHANNEL = "ivoplayx"; // <-- Asegúrate de que esté igual que tu canal en Twitch
+    /*****************************************
+     * CONFIG - Cambia SOLO el canal aquí:
+     *****************************************/
+    const CHANNEL = "ivoplayx"; // <-- escribe tu canal EXACTO (minúsculas OK)
+    const MAX_MESSAGES = 40;    // máximo de líneas visibles
 
-    // Conectamos al chat
-    ComfyJS.Init(CHANNEL);
+    /*****************************************
+     * Helpers (no tocar)
+     *****************************************/
+    const chatEl = document.getElementById('chat');
+    const statusEl = document.getElementById('status');
+    const userColorMap = {}; // color consistente por usuario
 
-    // Contenedor principal
-    const chatBox = document.getElementById("chat-box");
+    function debugStatus(txt, kind = 'info') {
+      statusEl.textContent = txt;
+      statusEl.dataset.kind = kind;
+      console.log('[CHAT] ', txt);
+    }
 
-    // Mostrar mensajes
-    ComfyJS.onChat = (user, message, flags, self, extra) => {
-      const msgDiv = document.createElement("div");
-      msgDiv.classList.add("message");
+    function hashColor(name) {
+      let h = 0;
+      for (let i = 0; i < name.length; i++) {
+        h = name.charCodeAt(i) + ((h << 5) - h);
+        h = h & h; // keep 32-bit
+      }
+      const hue = Math.abs(h) % 360;
+      return `hsl(${hue} 78% 56%)`;
+    }
 
-      // Alternar colores entre usuarios
-      const colorClass = user.toLowerCase().charCodeAt(0) % 2 === 0 ? "user1" : "user2";
-      msgDiv.classList.add(colorClass);
+    function ensureUserColor(name) {
+      if (!userColorMap[name]) userColorMap[name] = hashColor(name);
+      return userColorMap[name];
+    }
 
-      msgDiv.innerHTML = `<span class="username">${user}:</span> ${message}`;
-      chatBox.appendChild(msgDiv);
+    function createMessageElem(displayName, text) {
+      const line = document.createElement('div');
+      line.className = 'message';
 
-      // Eliminar mensajes antiguos para mantener limpio
-      if (chatBox.children.length > 15) {
-        chatBox.removeChild(chatBox.firstChild);
+      // avatar (circle with color)
+      const avatar = document.createElement('span');
+      avatar.className = 'avatar';
+      avatar.style.background = ensureUserColor(displayName);
+      avatar.title = displayName;
+
+      // username
+      const user = document.createElement('span');
+      user.className = 'username';
+      user.textContent = displayName;
+
+      // text
+      const msg = document.createElement('span');
+      msg.className = 'text';
+      msg.textContent = text;
+
+      line.appendChild(avatar);
+      line.appendChild(user);
+      line.appendChild(msg);
+
+      return line;
+    }
+
+    function pushMessage(displayName, text) {
+      const elem = createMessageElem(displayName, text);
+
+      // add at bottom
+      chatEl.appendChild(elem);
+
+      // remove old
+      while (chatEl.children.length > MAX_MESSAGES) {
+        chatEl.removeChild(chatEl.firstChild);
       }
 
-      // Scroll automático hacia abajo
-      chatBox.scrollTop = chatBox.scrollHeight;
-    };
+      // alternate backgrounds (keeps block look)
+      Array.from(chatEl.children).forEach((c, i) => {
+        c.classList.toggle('alt', i % 2 === 0);
+      });
+
+      // auto-scroll
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    /*****************************************
+     * Conexión tmi.js (Twitch)
+     *****************************************/
+    debugStatus('Iniciando conexión a Twitch...', 'loading');
+
+    const client = new tmi.Client({
+      options: { debug: false },
+      connection: {
+        reconnect: true,
+        secure: true
+      },
+      channels: [ CHANNEL ]
+    });
+
+    // Reconexión con backoff
+    let backoff = 1000;
+    client.connect()
+      .then(() => {
+        debugStatus('Conectado a Twitch ✅', 'ok');
+        backoff = 1000;
+      })
+      .catch(err => {
+        debugStatus('ERROR conexión: ' + (err && err.message ? err.message : err), 'error');
+        console.error(err);
+      });
+
+    client.on('connected', (addr, port) => debugStatus(`Conectado a ${addr}:${port}`, 'ok'));
+    client.on('disconnected', (reason) => {
+      debugStatus('Desconectado: ' + reason, 'error');
+      // intentar reconectar con backoff (tmi.js ya reintenta, esto es solo aviso)
+    });
+
+    client.on('message', (channel, tags, message, self) => {
+      if (self) return;
+      const name = tags['display-name'] || tags['username'] || 'Anon';
+      pushMessage(name, message);
+    });
+
+    /*****************************************
+     * Fallback de prueba (si abres la página con ?test=1)
+     *****************************************/
+    const url = new URL(location.href);
+    if (url.searchParams.get('test') === '1') {
+      debugStatus('Modo TEST: generando mensajes de prueba', 'test');
+      const testNames = ['Ivoplayx','viewer01','luis','maría','pepe'];
+      let i = 0;
+      setInterval(() => {
+        pushMessage(testNames[i % testNames.length], 'Mensaje de prueba #' + (i+1));
+        i++;
+      }, 1200);
+    }
   </script>
 </body>
 </html>
