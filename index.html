@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat de Twitch - Ivoplayx</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/comfy.js@1.1.1/dist/comfy.min.js"></script>
+</head>
+<body>
+  <div id="chat-box"></div>
+
+  <script>
+    // Configura tu canal de Twitch
+    const CHANNEL = "ivoplayx"; // <-- Asegúrate de que esté igual que tu canal en Twitch
+
+    // Conectamos al chat
+    ComfyJS.Init(CHANNEL);
+
+    // Contenedor principal
+    const chatBox = document.getElementById("chat-box");
+
+    // Mostrar mensajes
+    ComfyJS.onChat = (user, message, flags, self, extra) => {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message");
+
+      // Alternar colores entre usuarios
+      const colorClass = user.toLowerCase().charCodeAt(0) % 2 === 0 ? "user1" : "user2";
+      msgDiv.classList.add(colorClass);
+
+      msgDiv.innerHTML = `<span class="username">${user}:</span> ${message}`;
+      chatBox.appendChild(msgDiv);
+
+      // Eliminar mensajes antiguos para mantener limpio
+      if (chatBox.children.length > 15) {
+        chatBox.removeChild(chatBox.firstChild);
+      }
+
+      // Scroll automático hacia abajo
+      chatBox.scrollTop = chatBox.scrollHeight;
+    };
+  </script>
+</body>
+</html>
