@@ -5,18 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ivoplayx Chat</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/tmi.js@1.8.5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
 </head>
 <body>
   <div id="chat"></div>
 
   <script>
+    // Conectar con Twitch
     const client = new tmi.Client({
-      channels: ['ivoplayx']
+      options: { debug: false },
+      connection: { reconnect: true },
+      channels: ['ivoplayx'] // cambia aquí si tu canal se llama distinto
     });
 
     client.connect();
 
+    // Manejar mensajes
     client.on('message', (channel, tags, message, self) => {
       if (self) return;
       addMessage(tags['display-name'], message);
@@ -26,6 +30,10 @@
       const chat = document.getElementById('chat');
       const msgContainer = document.createElement('div');
       msgContainer.classList.add('message');
+
+      // Alterna colores entre mensajes
+      const index = chat.children.length % 2;
+      msgContainer.classList.add(index === 0 ? 'dark' : 'darker');
 
       const user = document.createElement('span');
       user.classList.add('username');
@@ -39,18 +47,12 @@
       msgContainer.appendChild(text);
       chat.appendChild(msgContainer);
 
-      // Alterna colores
-      const messages = document.querySelectorAll('.message');
-      messages.forEach((msg, i) => {
-        msg.classList.toggle('alt', i % 2 === 0);
-      });
-
-      // Mantiene solo los últimos 20 mensajes
+      // Limitar a 20 mensajes
       if (chat.children.length > 20) {
         chat.removeChild(chat.firstChild);
       }
 
-      // Scroll automático
+      // Auto scroll
       chat.scrollTop = chat.scrollHeight;
     }
   </script>
