@@ -1,45 +1,58 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat de Twitch - Ivoplayx</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/comfy.js@1.1.1/dist/comfy.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ivoplayx Chat</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/tmi.js@1.8.5"></script>
 </head>
 <body>
-  <div id="chat-box"></div>
+  <div id="chat"></div>
 
   <script>
-    // Configura tu canal de Twitch
-    const CHANNEL = "ivoplayx"; // <-- Asegúrate de que esté igual que tu canal en Twitch
+    const client = new tmi.Client({
+      channels: ['ivoplayx']
+    });
 
-    // Conectamos al chat
-    ComfyJS.Init(CHANNEL);
+    client.connect();
 
-    // Contenedor principal
-    const chatBox = document.getElementById("chat-box");
+    client.on('message', (channel, tags, message, self) => {
+      if (self) return;
+      addMessage(tags['display-name'], message);
+    });
 
-    // Mostrar mensajes
-    ComfyJS.onChat = (user, message, flags, self, extra) => {
-      const msgDiv = document.createElement("div");
-      msgDiv.classList.add("message");
+    function addMessage(username, message) {
+      const chat = document.getElementById('chat');
+      const msgContainer = document.createElement('div');
+      msgContainer.classList.add('message');
 
-      // Alternar colores entre usuarios
-      const colorClass = user.toLowerCase().charCodeAt(0) % 2 === 0 ? "user1" : "user2";
-      msgDiv.classList.add(colorClass);
+      const user = document.createElement('span');
+      user.classList.add('username');
+      user.textContent = username + ': ';
 
-      msgDiv.innerHTML = `<span class="username">${user}:</span> ${message}`;
-      chatBox.appendChild(msgDiv);
+      const text = document.createElement('span');
+      text.classList.add('text');
+      text.textContent = message;
 
-      // Eliminar mensajes antiguos para mantener limpio
-      if (chatBox.children.length > 15) {
-        chatBox.removeChild(chatBox.firstChild);
+      msgContainer.appendChild(user);
+      msgContainer.appendChild(text);
+      chat.appendChild(msgContainer);
+
+      // Alterna colores
+      const messages = document.querySelectorAll('.message');
+      messages.forEach((msg, i) => {
+        msg.classList.toggle('alt', i % 2 === 0);
+      });
+
+      // Mantiene solo los últimos 20 mensajes
+      if (chat.children.length > 20) {
+        chat.removeChild(chat.firstChild);
       }
 
-      // Scroll automático hacia abajo
-      chatBox.scrollTop = chatBox.scrollHeight;
-    };
+      // Scroll automático
+      chat.scrollTop = chat.scrollHeight;
+    }
   </script>
 </body>
 </html>
